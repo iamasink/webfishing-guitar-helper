@@ -2,19 +2,28 @@
 
 SetDefaultMouseSpeed(1)
 
+#Include Peep.v2.ahk
+
+; explanation of formats
+; array format, an array containing 1-9 arrays, each referring to a preset
+; text format, space and newline delimited string, each space seperates one note, each line seperates one preset
+; eg
+; 0 1 D# A#2 C F (newline)
+; F A# D# G# C F
+; etc..
+;
+; notes / numbers
+; numbers start at 1, or the default very top note
+; 0 means it is muted, there is no note on that column
+; letter notes format can have numbers in them,
+; but they should really only be used for muted and default
+; unless the whole thing is numbers to avoid confusion
+;
+
+
 ; 0 -> 15
 ; columns := [0, 0, 0, 1, 13]
-dango := [
-    [0, 0, 0, 1, 13, 0],
-    [0, 0, 0, 0, 11, 11],
-    [0, 0, 0, 0, 1, 13],
-    [0, 0, 0, 0, 0, 15],
-    [],
-    [],
-    [],
-    [],
-    [],
-]
+
 
 ; notes := [
 ;     ["E", "A", "D", "G", "B", "E"],
@@ -46,55 +55,7 @@ notes := [
 ]
 
 
-sweden := [
-    [3, 8, 6, 5, 11, 8],
-    [8, 11, 13, 12, 4, 1],
-    [4, 10, 8, 7, 8, 6],
-    [4, 6, 8, 7, 6, 15],
-    [0, 8, 6, 5, 13, 0],
-    [8, 11, 13, 12, 15, 14],
-    [4, 10, 8, 7, 15, 11],
-    [0, 6, 8, 7, 10, 11],
-    [8, 10, 8, 7, 8, 8],
-]
-
-wethands := [
-    [6, 5, 3, 3, 1, 0],
-    [0, 0, 0, 0, 3, 1],
-    [0, 0, 1, 3, 3, 1],
-    [4, 3, 1, 1, 0, 0],
-    [0, 0, 5, 3, 0, 0],
-    [0, 3, 1, 0, 0, 3],
-    [0, 0, 5, 3, 3, 0],
-    [],
-    [],
-]
-
-stillalive1 := [
-    [1, 1, 10, 3, 4, 3],
-    [1, 1, 8, 5, 6, 4],
-    [1, 1, 0, 8, 7,],
-    [0, 0, 4, 0, 4, 2],
-    [4, 4, 3, 1, 2, 1],
-    [2, 4, 4, 3, 2, 2],
-    [2, 1, 1, 3, 4, 2],
-    [1, 1, 1, 3, 4, 1],
-    [1, 3, 0, 5, 1, 1],
-]
-
-stillalive2 := [
-    [1, 13, 13, 10, 8, 4],
-    [1, 13, 12, 8, 6, 3],
-    [1, 1, 10, 3, 4, 3],
-    [1, 1, 11, 8, 6, 2],
-    [1, 13, 9, 6, 8, 2],
-    [1, 1, 13, 10, 7, 4],
-    [1, 1, 16, 13, 11, 7],
-    [1, 1, 15, 12, 9, 6],
-    [1, 1, 13, 12, 11, 8],
-]
-
-tuning := dango
+tuning := ""
 ; y 130 -> 1360
 rows := [130, 210, 290, 375, 450, 540, 620, 700, 790, 870, 950, 1035, 1110, 1200, 1280, 1360]
 ; x 460 -> 680
@@ -145,57 +106,144 @@ f12:: {
     ; ToolTip(text)
 }
 
-f11:: {
-    ; convert letters with numbers to numbers
-    ; eg [0,"E1","G1",0,0,0] to [0,1,11,0,0,0]
-    text := ""
 
-    for row in converty() {
+convertNotesArrayToText(array) {
+    ; Peep(array)
+    for row in array {
         rowText := ""  ; Initialize a string to store the current row
         for element in row {
-            ; Check if the element is a string, otherwise leave it as a number
-            rowText .= element . ", "  ; Leave numbers as they are
-
+            rowText .= element . ","
+            spaces := 3 - StrLen(element)
+            loop spaces {
+                rowText := rowText . " "
+            }
         }
         ; Remove the last comma and space from the rowText
-        rowText := SubStr(rowText, 1, StrLen(rowText) - 2)
+        rowText := SubStr(rowText, 1, -2)
         text .= "[" rowText "], `n"  ; Append the row text to the final text
     }
-
-    A_Clipboard := text  ; Display the converted text in a tooltip
+    ; remove final newline
+    text := SubStr(text, 1, -2)
+    return text
 }
 
 f10:: {
     ; show gui
     myGui := Gui()
+    ListBox := myGui.Add("ListBox", "x8 y8 w120 h160",)
+    ButtonChoose := myGui.Add("Button", "x136 y144 w80 h23", "&Choose")
+    ButtonAdd := myGui.Add("Button", "x136 y8 w80 h23", "Add...")
+    ButtonRemove := myGui.Add("Button", "x136 y32 w80 h23", "Remove")
+    ButtonChoose.OnEvent("Click", OnEventHandler)
+    ButtonAdd.OnEvent("Click", OnAdd)
+    ButtonRemove.OnEvent("Click", OnEventHandler)
     myGui.Title := "Window"
-    Edit1 := myGui.Add("Edit", "x40 y64 w224 h182 +Multi")
-    myGui.Show("w409 h288")
+
+    OnEventHandler(*) {
+        ToolTip("Click! This is a sample action.`n"
+            . "Active GUI element values include:`n"
+            . "ButtonChoose => " ButtonChoose.Text "`n"
+            . "ButtonAdd => " ButtonAdd.Text "`n"
+            . "ButtonRemove => " ButtonRemove.Text "`n", 77, 277)
+        SetTimer () => ToolTip(), -3000 ; tooltip timer
+    }
+
+    OnAdd(*) {
+
+        ; show another gui popup.
+        myGui2 := Gui()
+        myGui2.Opt("+Owner" myGui.Hwnd)
+        myGui.Opt("+Disabled")  ; Force the user to dismiss this window before returning to the main window.
+        ; add components
+        EditNameInput := myGui2.Add("Edit", "r1 x8 y8 w100 h20")
+        EditNotesInput := myGui2.Add("Edit", "r9 x8 y40 w131 h121 +Multi")
+        EditNotesPreview := myGui2.Add("Edit", "ReadOnly r9 x144 y40 w180 h121")
+        EditNotesPreview2 := myGui2.Add("Edit", "ReadOnly r9 x320 y40 w180 h121")
+        EditNotesPreview.SetFont(, "Consolas")
+        EditNotesPreview2.SetFont(, "Consolas")
+        ; ButtonCheck := myGui2.Add("Button", "x144 y180 w80 h23 Disabled", "Check")
+        ButtonAdd2 := myGui2.Add("Button", "x144 y200 w80 h23", "&Add")
+
+        ; events
+        EditNotesInput.OnEvent("Change", OnEdit)
+        ; ButtonCheck.OnEvent("Click", OnEdit)
+        ButtonAdd2.OnEvent("Click", OnAdd)
+        myGui2.OnEvent('Close', (*) => myGui.Opt("-Disabled"))
+
+
+        ; show window
+        myGui2.Title := "Window"
+        myGui2.Show("w400 h250")
+
+        newNotesArray := []
+
+
+        OnEdit(*) {
+            ; ToolTip(EditNotesInput.Text)
+            notestext := EditNotesInput.Text
+            notesArray := []
+            ; if array format
+            if (InStr(notestext, "[")) {
+                ToolTip("you cant use arrays here!")
+            } else {
+                ; assume text format, convert to array
+                notesArray := textToArray(notestext)
+                ; convert array to numbers
+                newNotesArray := convertLetters(notesArray)
+                EditNotesPreview.Value := Trim(convertNotesArrayToText(newNotesArray))
+                EditNotesPreview2.Value := Trim(arrayToSpacesPretty(newNotesArray))
+            }
+        }
+        ; when add button clicked..
+        OnAdd(*) {
+            filePath := A_ScriptDir "\songs\" Trim(EditNameInput.Value) ".txt"
+            if (FileExist(filepath)) {
+                MsgBox("File already exists! " filePath)
+                return
+            }
+            if (StrLen(EditNameInput.Value) < 1) {
+                MsgBox("You must set a file name!")
+                return
+            }
+
+            valueSpaced := Trim(arrayToSpaces(newNotesArray))
+            FileAppend(valueSpaced, filePath)
+            myGui.Opt("-Disabled")
+            myGui2.Destroy()
+            ; refresh listbox
+            ListBox.Delete()
+            loop files A_ScriptDir "\songs\*.txt" {
+                ListBox.Add([A_LoopFileName])
+            }
+        }
+    }
+
+
+    myGui.Show("w223 h176")
+    ListBox.Delete()
+    loop files A_ScriptDir "\songs\*.txt" {
+        ListBox.Add([A_LoopFileName])
+    }
 }
 
-converty() {
-    ; data := [
-    ;     [1, 1, "B1", "A1", "D1", "F#1"],
-    ;     [1, 1, "A1", "B1", "E1", "G1"],
-    ;     [1, 1, "A#1", "D1", "F1", "A#1"],
-    ;     [0, "A#1", "F1", "A#1", "D1", "F1"],
-    ;     ["G1", "C1", "E1", 1, "C1", 1],
-    ;     ["F1", "C1", "F1", "A1", "C1", "F1"],
-    ;     ["F1", 1, 1, "A1", "D1", "F1"],
-    ;     [1, 1, 1, "A1", "D1", 1],
-    ;     [1, "B1", "F#1", "B1", 1, 1]
-    ; ]
-    data := [
-        [1, "a2", "d2", "e", "f#", "g1"],
-        [1, "a2", "c#1", "d1", "e", "f#"],
-        [1, 1, "b", "a", "d", "f#"],
-        [1, 1, "c", "d", "e", "f"],
-        [1, "a2", "a#", "c", "f#", "f"],
-        [1, 1, "D2", "e", "f", "g",],
-        [1, 1, "f2", "g2", "a", "a#"],
-        [1, 1, "e2", "f#", "g1", "a"],
-        [1, 1, "d2", "f#", "a1", "b1"],
-    ]
+f9:: {
+    text := A_Clipboard
+    Peep(textToArray(text))
+    ; A_Clipboard := text
+}
+
+
+getArrayValueIndex(arr, val) {
+    Loop arr.Length {
+        if (arr[A_Index] == Trim(val))
+            return A_Index
+    }
+    return -1
+}
+
+; convert letters to array of array of note numbers
+convertLetters(array) {
+    issues := ""
     output := [
         [],
         [],
@@ -207,87 +255,184 @@ converty() {
         [],
         [],
     ]
-    for i, v in data {
-        output[i] := convertLetters(v)
+    for i, v in array {
+        row := v
+        newarray := []
+        for index, value in row {
+            value := Trim(StrUpper(value))
+            ; noteletter := value
+            notenumber := 0
+            ; MsgBox(index " : " value)
+            ; if it is already a number
+            if (IsNumber(value)) {
+                notenumber := value
+
+            } else {
+                ; handle 1 character
+                if (StrLen(value) == 1) {
+                    if (value == "X") {
+                        ; unset note
+                        notenumber := 0
+                    } else {
+                        noteletter := value
+                        arrayIndex := getArrayValueIndex(notes[index], noteletter)
+                        if (arrayIndex == -1) {
+                            issues := issues value " invalid (1)`n"
+                            notenumber := 0
+                        } else {
+                            notenumber := arrayIndex
+                        }
+                    }
+
+                }
+
+                ; two character
+                else if (StrLen(value) == 2) {
+                    ; if the string is like "E#"
+                    if (SubStr(value, 2, 1) == "#") {
+                        ; all is well
+                        noteletter := SubStr(value, 1, 2)
+                    }
+                    ; if it has a 1, remove it
+                    else if (SubStr(value, 2, 1) == "1") {
+                        noteletter := SubStr(value, 1, 1)
+                    }
+                    ; if it has a 2, keep it
+                    else if (SubStr(value, 2, 1) == "2") {
+                        noteletter := SubStr(value, 1, 2)
+                    } else {
+                        ; invalid letter
+                        ; MsgBox("invalid: " value " / " value)
+                        issues := issues value " invalid (2, 1)`n"
+
+                        noteletter := 0
+                    }
+                    arrayIndex := getArrayValueIndex(notes[index], noteletter)
+                    if (arrayIndex == -1) {
+                        issues := issues value " invalid (2, 2)`n"
+                        notenumber := 0
+                    } else {
+                        notenumber := arrayIndex
+                    }
+
+                    ; 3 character
+                } else if (StrLen(value) == 3) {
+                    if (SubStr(value, 3, 1) == "1") {
+                        noteletter := SubStr(value, 1, 2)
+                        ; MsgBox(noteletter)
+                    }
+                    else if (SubStr(value, 3, 1) == "2") {
+                        noteletter := SubStr(value, 1, 3)
+                    } else {
+                        ; invalid
+                        ; MsgBox("invalid: " value " / " noteletter)
+                        issues := issues value " invalid (3, 1)`n"
+                        noteletter := 0
+                    }
+                    arrayIndex := getArrayValueIndex(notes[index], noteletter)
+                    if (arrayIndex == -1) {
+                        issues := issues value " invalid (3, 2)`n"
+
+                        notenumber := 0
+                    } else {
+                        notenumber := arrayIndex
+                    }
+                } else {
+                    ; MsgBox("' " value " ' Is Invalid!!")
+                    issues := issues value " invalid`n"
+                    notenumber := 0
+                }
+
+
+            }
+            newarray.Push(notenumber)
+        }
+        output[i] := newarray
     }
+    ; if (StrLen(issues) > 1) {
+    if (StrLen(issues)) {
+        ToolTip("issues: " issues, , , 2)
+    } else {
+        ToolTip(, , , 2)
+    }
+    ; }
     return output
 }
 
-getArrayValueIndex(arr, val) {
-    Loop arr.Length {
-        if (arr[A_Index] == val)
-            return A_Index
-    }
-    MsgBox("unknown" val)
-}
-
-convertLetters(array) {
-    newarray := []
-    for index, value in array {
-        value := StrUpper(value)
-        noteletter := value
-        notenumber := 0
-        ; MsgBox(index " : " value)
-        ; handle 1 character
-        if (StrLen(String(value)) == 1) {
-            MsgBox(StrLen(value))
-            if (value == 0) {
-                notenumber := 0
-            } else if (value == 1) {
-                notenumber := 1
-            }
-            else {
-                noteletter := value
-                notenumber := getArrayValueIndex(notes[index], noteletter)
+arrayToSpaces(array) {
+    for row in array {
+        rowText := ""  ; Initialize a string to store the current row
+        for element in row {
+            rowText .= element . " "
+            spaces := 3 - StrLen(element)
+            loop spaces {
+                rowText := rowText . " "
             }
         }
-        else if (StrLen(value) == 2) {
-            MsgBox(StrLen(value))
-            ; if the string is like "E#"
-            if (SubStr(value, 2, 1) == "#") {
-                ; all is well
-                noteletter := SubStr(value, 1, 2)
-            }
-            else if (SubStr(value, 2, 1) == "1") {
-                noteletter := SubStr(value, 1, 1)
-            }
-            else if (SubStr(value, 2, 1) == "2") {
-                noteletter := SubStr(value, 1, 2)
-            } else {
-                ; invalid letter
-                MsgBox("invalid: " value " / " noteletter)
-                noteletter := 0
-            }
-            notenumber := getArrayValueIndex(notes[index], noteletter)
-        } else if (StrLen(value) == 3) {
-            MsgBox(StrLen(value))
-            if (SubStr(value, 3, 1) == "1") {
-                noteletter := SubStr(value, 1, 2)
-                MsgBox(noteletter)
-            }
-            else if (SubStr(value, 3, 1) == "2") {
-                noteletter := SubStr(value, 1, 3)
-            } else {
-                ; invalid
-                MsgBox("invalid: " value " / " noteletter)
-                noteletter := 0
-            }
-            notenumber := getArrayValueIndex(notes[index], noteletter)
-        }
-        newarray.Push(notenumber)
+        text .= rowText "`n"  ; Append the row text to the final text
     }
-    return newarray
+    ; remove final newline
+    text := SubStr(text, 1, -2)
+    return text
 }
 
+arrayToSpacesPretty(array) {
+    for i, row in array {
+        rowText := ""  ; Initialize a string to store the current row
+        for element in row {
+            rowText .= element . " "
+            spaces := 3 - StrLen(element)
+            loop spaces {
+                rowText := rowText . " "
+            }
+        }
+        text .= i ": " rowText "`n"  ; Append the row text to the final text
+    }
+    ; remove final newline
+    text := SubStr(text, 1, -2)
+    return text
+}
+
+; convert a space and newline delimited string into an array of arrays containing the text
+textToArray(text) {
+    text := Trim(text)
+    ; split by newlines
+    arrayOfText := StrSplit(Trim(text), "`n", "`r")
+    newArray := [
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+    ]
+    ; for each array split by newline
+    for i, v in arrayOfText {
+        if (i > 9) {
+            continue
+        }
+        ; add to newArray
+        line := StrSplit(Trim(arrayOfText[i]), " ")
+        while (line && line.Length > 6) {
+            line.Pop()
+        }
+        newArray[i] := line
+    }
+    ; Peep(newArray)
+    return newArray
+}
 
 ; quick reload when editing
-#HotIf WinActive(A_ScriptName " ahk_exe Code.exe")
-~^s::
-{
-    ; Send("^s")
-    ToolTip("Reloading " A_ScriptName ".", A_ScreenWidth / 2, A_ScreenHeight / 2)
-    Sleep(250)
-    Reload()
-    ; MsgBox("reloading !")
-    Return
-}
+; #HotIf WinActive(A_ScriptName " ahk_exe Code.exe")
+; ~^s::
+; {
+;     ; Send("^s")
+;     ToolTip("Reloading " A_ScriptName ".", A_ScreenWidth / 2, A_ScreenHeight / 2)
+;     Sleep(250)
+;     Reload()
+;     ; MsgBox("reloading !")
+;     Return
+; }
