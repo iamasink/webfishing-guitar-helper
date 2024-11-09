@@ -171,7 +171,7 @@ f10:: {
             array := textToArray(notes)
             ; Peep(array)
             SendInputForNotes(array)
-            ToolTip()
+            ToolTip(getComments(notes), , , 2)
         } else {
             ToolTip("Cancelled!")
             Sleep(5000)
@@ -266,6 +266,19 @@ f9:: {
     ; A_Clipboard := text
 }
 
+getComments(text) {
+    output := ""
+    arrayOfText := StrSplit(Trim(text), "`n", "`r")
+    for i, v in arrayOfText {
+        if (SubStr(v, 1, 1) == "#") {
+            ; this is a comment
+            ; strip #
+            output .= Trim(SubStr(v, 2)) "`n"
+        }
+    }
+    return output
+}
+
 
 getArrayValueIndex(arr, val) {
     Loop arr.Length {
@@ -289,7 +302,12 @@ convertLetters(array) {
             ; MsgBox(index " : " value)
             ; if it is already a number
             if (IsNumber(value)) {
-                notenumber := value
+                if (value > 16 || value < 0) {
+                    issues := issues value " invalid (0)`n"
+                    notenumber := 0
+                } else {
+                    notenumber := value
+                }
 
             } else {
                 ; handle 1 character
@@ -430,7 +448,7 @@ arrayToSpacesPretty(array) {
 
 ; convert a space and newline delimited string into an array of arrays containing the text
 textToArray(text) {
-    text := Trim(text)
+    text := Trim(text, "     `n`r`t")
     ; split by newlines
     arrayOfText := StrSplit(Trim(text), "`n", "`r")
     ; Peep(arrayOfText)
@@ -460,6 +478,10 @@ textToArray(text) {
         }
         line := newline
 
+        ; ensure line is exactly 6 long
+        while (line.Length < 6) {
+            line.Push(0)
+        }
         while (line && line.Length > 6) {
             line.Pop()
         }
