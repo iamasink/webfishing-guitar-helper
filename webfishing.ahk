@@ -1,15 +1,19 @@
 #Requires AutoHotkey v2.0
 
-SetDefaultMouseSpeed(1)
+SetDefaultMouseSpeed(0)
 
 #Include Peep.v2.ahk
 
 ; explanation of formats
-; array format, an array containing 1-9 arrays, each referring to a preset
+; array format, an array containing 1-9 arrays, each referring to a preset. only used by the code, not users
 ; text format, space and newline delimited string, each space seperates one note, each line seperates one preset
+; if a line starts with a #, its ignored as a comment.
+; lines past the first 9 are also ignored. (be careful for songs that haven't got all 9 presets set!)
 ; eg
 ; 0 1 D# A#2 C F (newline)
 ; F A# D# G# C F
+; # this is a comment
+; 0 0 0 0 0 0
 ; etc..
 ;
 ; notes / numbers
@@ -61,49 +65,53 @@ rows := [130, 210, 290, 375, 450, 540, 620, 700, 790, 870, 950, 1035, 1110, 1200
 ; x 460 -> 680
 columns := [460, 500, 550, 590, 640, 680]
 
-f12:: {
-    text := ""
-    ; for each of 1-9 presets:
-    for id, value IN tuning
-    {
-        ToolTip(id)
-        Send("{" id " Down}")
-        Sleep(100)
-        Send("{" id " Up}")
-        text := text "`n" id " : "
-        while (value.Length != 6) {
-            value.Push(0)
-        }
+SendInputForNotes(array) {
+    window := WinExist("ahk_exe webfishing.exe")
 
-        ; for each column, id 0 - 6, column 0-15 (0 = none)
-        for id, column in value
+    if (!window) {
+        MsgBox("webfishing not open? lol")
+    } else {
+
+
+        for id, value IN array
         {
-            text := text "`n" id " : " column
-            if (column == 0 || !column) {
-                ; ToolTip(columns[id] " " rows[1])
-                Click(columns[id] " " rows[1])
-                Sleep(50)
-                Click(columns[id] " " rows[1])
-                Sleep(10)
-            } else {
-                ToolTip(columns[id] " " rows[column])
-                if (column == 1) {
-                    Click(columns[id] " " rows[2])
-                    Sleep(10)
-                    Click(columns[id] " " rows[1])
-                } else {
-                    Click(columns[id] " " rows[column - 1])
-                    Sleep(50)
-                    Click(columns[id] " " rows[column])
-                    Sleep(10)
+            Send("{" id " Down}")
+            Sleep(100)
+            Send("{" id " Up}")
+            Sleep(100)
+            while (value.Length < 6) {
+                value.Push(0)
+            }
 
+            ; for each row, id 0 - 6, row 0-15 (0 = none)
+            for id, row in value
+            {
+                ; first click on another row, so it doesn't mute it if its already set
+                if (row == 0 || !row) {
+                    ; ToolTip(columns[id] " " rows[1])
+                    ; muted
+                    Click(columns[id] " " rows[2])
+                    Sleep(20)
+                    Click(columns[id] " " rows[1])
+                    Sleep(20)
+                    Click(columns[id] " " rows[1])
+                    Sleep(20)
+                } else {
+                    if (row == 1) {
+                        Click(columns[id] " " rows[2])
+                        Sleep(30)
+                        Click(columns[id] " " rows[1])
+                    } else {
+                        Click(columns[id] " " rows[row - 1])
+                        Sleep(30)
+                        Click(columns[id] " " rows[row])
+                        Sleep(30)
+
+                    }
                 }
             }
         }
-
     }
-    ; Click(columns[column])
-    ; ToolTip(text)
 }
 
 
@@ -130,11 +138,11 @@ convertNotesArrayToText(array) {
 f10:: {
     ; show gui
     myGui := Gui()
-    ListBox := myGui.Add("ListBox", "x8 y8 w120 h160",)
+    ListBox := myGui.Add("ListBox", "x10 y8 w120 h160",)
     ButtonChoose := myGui.Add("Button", "x136 y144 w80 h23", "&Choose")
     ButtonAdd := myGui.Add("Button", "x136 y8 w80 h23", "Add...")
     ButtonRemove := myGui.Add("Button", "x136 y32 w80 h23", "Remove")
-    ButtonChoose.OnEvent("Click", OnEventHandler)
+    ButtonChoose.OnEvent("Click", OnChoose)
     ButtonAdd.OnEvent("Click", OnAdd)
     ButtonRemove.OnEvent("Click", OnEventHandler)
     myGui.Title := "Window"
@@ -148,6 +156,29 @@ f10:: {
         SetTimer () => ToolTip(), -3000 ; tooltip timer
     }
 
+    OnChoose(*) {
+        myGui.Minimize()
+        filePath := A_ScriptDir "/songs/" ListBox.Text
+        MsgBox("Remember to not move your mouse while the guitar is being set!`nClose this popup then open the guitar and press enter.`nFile: " filePath)
+        ToolTip("Open the guitar, then press enter!")
+        key := KeyWait("Enter", "D T6")
+        if (key) {
+            ; start
+            ToolTip()
+            notes := FileRead(filePath)
+            ; ToolTip("File: " filePath)
+            Sleep(100)
+            array := textToArray(notes)
+            ; Peep(array)
+            SendInputForNotes(array)
+            ToolTip()
+        } else {
+            ToolTip("Cancelled!")
+            Sleep(5000)
+            ToolTip()
+        }
+    }
+
     OnAdd(*) {
 
         ; show another gui popup.
@@ -155,26 +186,29 @@ f10:: {
         myGui2.Opt("+Owner" myGui.Hwnd)
         myGui.Opt("+Disabled")  ; Force the user to dismiss this window before returning to the main window.
         ; add components
-        EditNameInput := myGui2.Add("Edit", "r1 x8 y8 w100 h20")
-        EditNotesInput := myGui2.Add("Edit", "r9 x8 y40 w131 h121 +Multi")
-        EditNotesPreview := myGui2.Add("Edit", "ReadOnly r9 x144 y40 w180 h121")
-        EditNotesPreview2 := myGui2.Add("Edit", "ReadOnly r9 x320 y40 w180 h121")
+        myGui2.AddText("r1 x10 y5", "Name:")
+        EditNameInput := myGui2.Add("Edit", "r1 x10 y20 w100 h20")
+        myGui2.AddText("r1 x10 y45", "Notes:")
+        myGui2.AddText("r1 x150 y45", "Notes:")
+        myGui2.AddText("r1 x360 y45", "Notes:")
+        EditNotesInput := myGui2.Add("Edit", "r9 x10 y60 w130 +Multi")
+        EditNotesPreview := myGui2.Add("Edit", "ReadOnly r9 x150 y60 w190")
+        EditNotesPreview2 := myGui2.Add("Edit", "ReadOnly r9 x360 y60 w190")
         EditNotesPreview.SetFont(, "Consolas")
         EditNotesPreview2.SetFont(, "Consolas")
         ; ButtonCheck := myGui2.Add("Button", "x144 y180 w80 h23 Disabled", "Check")
-        ButtonAdd2 := myGui2.Add("Button", "x144 y200 w80 h23", "&Add")
+        ButtonAdd2 := myGui2.Add("Button", "10 y200 w80 h23", "&Add")
 
         ; events
         EditNotesInput.OnEvent("Change", OnEdit)
         ; ButtonCheck.OnEvent("Click", OnEdit)
-        ButtonAdd2.OnEvent("Click", OnAdd)
+        ButtonAdd2.OnEvent("Click", OnSave)
         myGui2.OnEvent('Close', (*) => myGui.Opt("-Disabled"))
 
 
         ; show window
         myGui2.Title := "Window"
-        myGui2.Show("w400 h250")
-
+        myGui2.Show("w640 h250")
         newNotesArray := []
 
 
@@ -190,12 +224,12 @@ f10:: {
                 notesArray := textToArray(notestext)
                 ; convert array to numbers
                 newNotesArray := convertLetters(notesArray)
-                EditNotesPreview.Value := Trim(convertNotesArrayToText(newNotesArray))
-                EditNotesPreview2.Value := Trim(arrayToSpacesPretty(newNotesArray))
+                EditNotesPreview.Value := Trim(arrayToSpacesPretty(newNotesArray))
+                EditNotesPreview2.Value := Trim(arrayToSpaces(newNotesArray))
             }
         }
         ; when add button clicked..
-        OnAdd(*) {
+        OnSave(*) {
             filePath := A_ScriptDir "\songs\" Trim(EditNameInput.Value) ".txt"
             if (FileExist(filepath)) {
                 MsgBox("File already exists! " filePath)
@@ -244,17 +278,7 @@ getArrayValueIndex(arr, val) {
 ; convert letters to array of array of note numbers
 convertLetters(array) {
     issues := ""
-    output := [
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
-    ]
+    output := []
     for i, v in array {
         row := v
         newarray := []
@@ -347,7 +371,7 @@ convertLetters(array) {
             }
             newarray.Push(notenumber)
         }
-        output[i] := newarray
+        output.push(newarray)
     }
     ; if (StrLen(issues) > 1) {
     if (StrLen(issues)) {
@@ -360,7 +384,13 @@ convertLetters(array) {
 }
 
 arrayToSpaces(array) {
-    for row in array {
+    while (array.Length < 9) {
+        array.Push([0, 0, 0, 0, 0, 0])
+    }
+    num := 0
+    loop 9 {
+        num += 1
+        row := array[num]
         rowText := ""  ; Initialize a string to store the current row
         for element in row {
             rowText .= element . " "
@@ -377,6 +407,7 @@ arrayToSpaces(array) {
 }
 
 arrayToSpacesPretty(array) {
+    text := ""
     for i, row in array {
         rowText := ""  ; Initialize a string to store the current row
         for element in row {
@@ -388,8 +419,12 @@ arrayToSpacesPretty(array) {
         }
         text .= i ": " rowText "`n"  ; Append the row text to the final text
     }
+    ; if (StrLen(text) == 0) {
+
+    ; } else {
     ; remove final newline
     text := SubStr(text, 1, -2)
+    ; }
     return text
 }
 
@@ -398,28 +433,38 @@ textToArray(text) {
     text := Trim(text)
     ; split by newlines
     arrayOfText := StrSplit(Trim(text), "`n", "`r")
-    newArray := [
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
-    ]
+    ; Peep(arrayOfText)
+    newArray := []
+
+    linenumber := 1
     ; for each array split by newline
     for i, v in arrayOfText {
-        if (i > 9) {
+        ; if its too high, dont do anything
+        if (linenumber > 9) {
             continue
         }
+        ; ignore comments
+        if (SubStr(Trim(arrayOfText[i]), 1, 1) == "#")
+        {
+            continue
+        }
+
         ; add to newArray
         line := StrSplit(Trim(arrayOfText[i]), " ")
+        ; ensure any unnecessary spaces are removed
+        newline := []
+        for i, v in line {
+            if (StrLen(v) > 0) {
+                newline.Push(v)
+            }
+        }
+        line := newline
+
         while (line && line.Length > 6) {
             line.Pop()
         }
-        newArray[i] := line
+        newArray.push(line)
+        linenumber += 1
     }
     ; Peep(newArray)
     return newArray
