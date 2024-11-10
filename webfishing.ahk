@@ -141,6 +141,10 @@ f8:: {
     setup()
 }
 
+f9:: {
+    ExitApp()
+}
+
 SendInputForNotes(array) {
     ; first figure out where everything is
 
@@ -640,6 +644,19 @@ textToArray(text) {
     ; Peep(newArray)
     return newArray
 }
+
+; rebind numpad to number keys
+#HotIf WinActive('WEBFISHING')
+SC04F::1
+SC050::2
+SC051::3
+SC04B::4
+SC04C::5
+SC04D::6
+SC047::7
+SC048::8
+SC049::9
+SC052::0
 
 ; quick reload when editing
 #HotIf WinActive(A_ScriptName " ahk_exe Code.exe")
