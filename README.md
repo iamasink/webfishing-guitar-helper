@@ -14,3 +14,9 @@ This does not allow you to play songs automatically or with a MIDI device. Check
   
   
 Feel free to contribute!  
+
+
+## How to download
+click the green code button, then download as zip or click this    
+https://github.com/iamasink/webfishing-guitar-helper/archive/refs/heads/main.zip  
+then unzip it and run the .ahk or the .exe :3  
