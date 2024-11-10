@@ -8,4 +8,8 @@ and press **f8** to run the setup but you shouldnt need to do this at normal res
   
 It also allows you to use the numpad to switch presets.  
   
-This does not allow you to play songs automatically or with a MIDI device. Check [this](https://steamcommunity.com/sharedfiles/filedetails/?id=3352573634) out if that's what you want.
+This does not allow you to play songs automatically or with a MIDI device. Check [this](https://steamcommunity.com/sharedfiles/filedetails/?id=3352573634) out if that's what you want.  
+  
+  
+  
+Feel free to contribute!  
