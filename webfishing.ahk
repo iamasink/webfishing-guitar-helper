@@ -413,11 +413,6 @@ f10:: {
     }
 }
 
-f9:: {
-    text := A_Clipboard
-    Peep(textToArray(text))
-    ; A_Clipboard := text
-}
 
 getComments(text) {
     output := ""
