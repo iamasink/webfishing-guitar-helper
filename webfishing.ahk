@@ -136,7 +136,10 @@ setup() {
     IniWrite(data, "config.ini", "Button_Positions")
 
 }
-
+f7:: {
+    ToolTip()
+    ToolTip(, , , 2)
+}
 f8:: {
     setup()
 }
@@ -323,8 +326,9 @@ f10:: {
             BlockInput ("MouseMove")
             SendInputForNotes(array)
             BlockInput ("MouseMoveOff")
-            MouseMove(oldX, oldY, 2)
+            MouseMove(0, 0, 1)
             ToolTip(getComments(notes), , , 2)
+            MouseMove(oldX, oldY, 2)
         } else {
             ToolTip("Cancelled!")
             Sleep(5000)
