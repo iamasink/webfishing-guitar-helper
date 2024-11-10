@@ -216,11 +216,15 @@ SendInputForNotes(array) {
 
     if (!window) {
         MsgBox("webfishing not open? lol")
+        return
     } else {
         while (!WinActive("ahk_exe webfishing.exe")) {
             ToolTip("please focus webfishing!")
+            Sleep(500)
         }
+        BlockInput ("MouseMove")
         WinGetPos(, , &winWidth, &winHeight, "ahk_exe webfishing.exe")
+
 
         ToolTip("")
         for id, value IN array
@@ -264,6 +268,8 @@ SendInputForNotes(array) {
             }
         }
     }
+    BlockInput ("MouseMoveOff")
+
 }
 
 
@@ -323,11 +329,11 @@ f10:: {
             array := textToArray(notes)
             ; Peep(array)
             MouseGetPos(&oldX, &oldY)
-            BlockInput ("MouseMove")
             SendInputForNotes(array)
-            BlockInput ("MouseMoveOff")
             MouseMove(0, 0, 1)
+            Sleep(10)
             ToolTip(getComments(notes), , , 2)
+            Sleep(10)
             MouseMove(oldX, oldY, 2)
         } else {
             ToolTip("Cancelled!")
