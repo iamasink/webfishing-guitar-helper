@@ -5,7 +5,8 @@ CoordMode("Mouse", "Client")
 CoordMode("ToolTip", "Client")
 
 
-#Include Peep.v2.ahk
+; #Include Peep.v2.ahk
+TraySetIcon("icon.ico")
 
 ; explanation of formats
 ; array format, an array containing 1-9 arrays, each referring to a preset. only used by the code, not users
