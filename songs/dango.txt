@@ -1,0 +1,14 @@
+0   0   0   1   13  0   
+0   0   0   0   11  11  
+0   0   0   0   1   13  
+0   0   0   0   0   15  
+0   0   0   0   0   0   
+0   0   0   0   0   0   
+0   0   0   0   0   0   
+0   0   0   0   0   0   
+0   0   0   0   0   0
+from https://steamcommunity.com/sharedfiles/filedetails/?id=3356566613
+# 1 [rt] ->2 tyy ->3 y [ty] ->4 y ->2 y t
+# 1 [rt] ->2 tyy ->3 y [ty] (y 4y 2y)
+# 1 [rt] ->2 tyy ->3 y [ty] ->4 y ->2 y t
+# 1 [rt] ->2 tyy (3yy 2y)

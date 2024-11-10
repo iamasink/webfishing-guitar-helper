@@ -1,0 +1,21 @@
+3   8   6   5   11  8   
+8   11  13  12  4   1   
+4   10  8   7   8   6   
+4   6   8   7   6   15  
+0   8   6   5   13  0   
+8   11  13  12  15  14  
+4   10  8   7   15  11  
+0   6   8   7   10  11  
+8   10  8   7   8   8  
+from https://steamcommunity.com/sharedfiles/filedetails/?id=3356566613
+# quickly strum the larger groups like [wer] and [wert] rather than pushing them all down at once
+# 
+# 1 [er] q ->2 [er] q ->3 [wer] q ->4 [wer]
+# 1 [wer] q ->2 [wer] q ->3 [wer] q ->4 [wert]
+# 1 [wer] t y ->2 [wer] q ty ->3 [wer] q ty ->4 [wert]
+# 5 [wer] t ->1 y t ->2 [wer] q ty ->3 [wer] q yt ->4 [wert]
+# 1 [wer] t y ->6 [wert] q ( 6y 8y 7[wert] ) ->7 q yt ->8 [wert]
+# 
+# 1 [wer] y t ->2 [wer] q ty ->3 [wer] q ty ->4 [wert]
+# 1 [wer] y t ->2 [wer] q ty ->3 [wer] q ty ->4 [wert]
+# 1 [wer] y t ->6 [wert] q ( 6t 8y 7[wert] ) ->4 [qy] ->3 ty ->4 [wert] ->9 qwert y

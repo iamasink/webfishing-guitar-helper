@@ -8,5 +8,5 @@
 # this is an inline comment
 16
 0
-comment2 that wont show for now
+comment2 that wont show ingame
 # funny comment that isnt necessary
