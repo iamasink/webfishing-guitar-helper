@@ -1,6 +1,9 @@
 #Requires AutoHotkey v2.0
 
 SetDefaultMouseSpeed(0)
+CoordMode("Mouse", "Client")
+CoordMode("ToolTip", "Client")
+
 
 #Include Peep.v2.ahk
 
@@ -61,20 +64,161 @@ notes := [
 
 tuning := ""
 ; y 130 -> 1360
-rows := [130, 210, 290, 375, 450, 540, 620, 700, 790, 870, 950, 1035, 1110, 1200, 1280, 1360]
-; x 460 -> 680
-columns := [460, 500, 550, 590, 640, 680]
+; rows := [130, 210, 290, 375, 450, 540, 620, 700, 790, 870, 950, 1035, 1110, 1200, 1280, 1360]
+; rows := [0.09027777777777778,
+;     0.14,
+;     0.20,
+;     0.26,
+;     0.31,
+;     0.37,
+;     0.43,
+;     0.48,
+;     0.54,
+;     0.60,
+;     0.65,
+;     0.71,
+;     0.77,
+;     0.83,
+;     0.88,
+;     0.94]
+; ; x 460 -> 680
+; ; columns := [460, 500, 550, 590, 640, 680]
+; columns :=
+;     [0.179, 0.195, 0.214, 0.23, 0.25, 0.265]
+waitEnter() {
+    KeyWait("Enter", "D")
+    KeyWait("Enter")
+}
+
+setup() {
+    ToolTip("Starting setup, open the guitar!`nWe will now setup the note positions..`nPress enter to proceed.")
+    waitEnter()
+    ToolTip("Now click on the top right button to set the whole row to 'EADGBE', and position your mouse in the centre of that button.`nPress enter when done")
+    waitEnter()
+    MouseGetPos(&topButtonX, &topButtonY)
+    ToolTip("Done...")
+    loop 6 {
+        Send("{Left}")
+        Sleep(10)
+        Send("{Enter}")
+        Sleep(100)
+    }
+    ToolTip("Now position your mouse in the centre of the top left 'E'.`nPress enter when done")
+    loop 5 {
+        Sleep(500)
+        Send("{Enter}")
+    }
+    waitEnter()
+    MouseGetPos(&topLeftX, &topLeftY)
+    ToolTip("Now position your mouse in the centre of the bottom right 'G'.`nPress enter when done")
+    Send("{Down 15}")
+    Send("{Right 5}")
+    Sleep(200)
+    loop 5 {
+        Sleep(500)
+        Send("{Enter}")
+    }
+    waitEnter()
+    MouseGetPos(&bottomRightX, &bottomRightY)
+
+    WinGetPos(, , &winWidth, &winHeight, "ahk_exe webfishing.exe")
+
+    ToolTip("")
+    MsgBox("got values:`n" topButtonX ", " topButtonY "`n" topLeftX ", " topLeftY "`n" bottomRightX ", " bottomRightY)
+    data :=
+        "topButtonX = " topButtonX / winWidth
+        . "`ntopButtonY = " topButtonY / winHeight
+        . "`ntopLeftX = " topLeftX / winWidth
+        . "`ntopLeftY = " topLeftY / winHeight
+        . "`nbottomRightX = " bottomRightX / winWidth
+        . "`nbottomRightY = " bottomRightY / winHeight
+    ; error here can be ignored.
+    IniWrite(data, "config.ini", "Button_Positions")
+
+}
+
+f8:: {
+    setup()
+}
 
 SendInputForNotes(array) {
+    ; first figure out where everything is
+
+    topButtonX := IniRead("config.ini", "Button_Positions", "topButtonX", 0)
+    topButtonY := IniRead("config.ini", "Button_Positions", "topButtonY", 0)
+    topLeftX := IniRead("config.ini", "Button_Positions", "topLeftX", 0)
+    topLeftY := IniRead("config.ini", "Button_Positions", "topLeftY", 0)
+    bottomRightX := IniRead("config.ini", "Button_Positions", "bottomRightX", 0)
+    bottomRightY := IniRead("config.ini", "Button_Positions", "bottomRightY", 0)
+    if (
+        topButtonX == 0 ||
+        topButtonY == 0 ||
+        topLeftX == 0 ||
+        topLeftY == 0 ||
+        bottomRightX == 0 ||
+        bottomRightY == 0
+    ) {
+        MsgBox("the button positions are not set or invalid, run setup first!")
+        Return
+    }
+
+    a := (bottomRightX - topLeftX) / 5
+
+    columns := [
+        (topLeftX + (0 * a)),
+        (topLeftX + (1 * a)),
+        (topLeftX + (2 * a)),
+        (topLeftX + (3 * a)),
+        (topLeftX + (4 * a)),
+        (topLeftX + (5 * a)),
+    ]
+
+
+    b := (bottomRightY - topLeftY) / 15
+
+    rows := [
+        (topLeftY + (0 * b)),
+        (topLeftY + (1 * b)),
+        (topLeftY + (2 * b)),
+        (topLeftY + (3 * b)),
+        (topLeftY + (4 * b)),
+        (topLeftY + (5 * b)),
+        (topLeftY + (6 * b)),
+        (topLeftY + (7 * b)),
+        (topLeftY + (8 * b)),
+        (topLeftY + (9 * b)),
+        (topLeftY + (10 * b)),
+        (topLeftY + (11 * b)),
+        (topLeftY + (12 * b)),
+        (topLeftY + (13 * b)),
+        (topLeftY + (14 * b)),
+        (topLeftY + (15 * b)),
+    ]
+
+    ; Peep(rows)
+    ; for i, v in rows {
+    ;     ToolTip (Text := "a " String(v * winHeight), 500, v * winHeight)
+    ;     Sleep(1000)
+    ; }
+
+    ; Peep(columns)
+    ; Peep(rows)
+
+
     window := WinExist("ahk_exe webfishing.exe")
 
     if (!window) {
         MsgBox("webfishing not open? lol")
     } else {
+        while (!WinActive("ahk_exe webfishing.exe")) {
+            ToolTip("please focus webfishing!")
+        }
+        WinGetPos(, , &winWidth, &winHeight, "ahk_exe webfishing.exe")
 
-
+        ToolTip("")
         for id, value IN array
         {
+            Sleep(100)
             Send("{" id " Down}")
             Sleep(100)
             Send("{" id " Up}")
@@ -86,25 +230,26 @@ SendInputForNotes(array) {
             ; for each row, id 0 - 6, row 0-15 (0 = none)
             for id, row in value
             {
+                sleep(100)
                 ; first click on another row, so it doesn't mute it if its already set
                 if (row == 0 || !row) {
                     ; ToolTip(columns[id] " " rows[1])
                     ; muted
-                    Click(columns[id] " " rows[2])
+                    Click(columns[id] * winWidth " " rows[2] * winHeight)
                     Sleep(20)
-                    Click(columns[id] " " rows[1])
+                    Click(columns[id] * winWidth " " rows[1] * winHeight)
                     Sleep(20)
-                    Click(columns[id] " " rows[1])
+                    Click(columns[id] * winWidth " " rows[1] * winHeight)
                     Sleep(20)
                 } else {
-                    if (row == 1) {
-                        Click(columns[id] " " rows[2])
+                    if (row == 16) {
+                        Click(columns[id] * winWidth " " rows[15] * winHeight)
                         Sleep(30)
-                        Click(columns[id] " " rows[1])
+                        Click(columns[id] * winWidth " " rows[16] * winHeight)
                     } else {
-                        Click(columns[id] " " rows[row - 1])
+                        Click(columns[id] * winWidth " " rows[row + 1] * winHeight)
                         Sleep(30)
-                        Click(columns[id] " " rows[row])
+                        Click(columns[id] * winWidth " " rows[row] * winHeight)
                         Sleep(30)
 
                     }
@@ -157,9 +302,9 @@ f10:: {
     }
 
     OnChoose(*) {
-        myGui.Minimize()
         filePath := A_ScriptDir "/songs/" ListBox.Text
-        MsgBox("Remember to not move your mouse while the guitar is being set!`nClose this popup then open the guitar and press enter.`nFile: " filePath)
+        myGui.Destroy()
+        ; MsgBox("Remember to not move your mouse while the guitar is being set!`nClose this popup then open the guitar and press enter.`nFile: " filePath)
         ToolTip("Open the guitar, then press enter!")
         key := KeyWait("Enter", "D T6")
         if (key) {
@@ -170,7 +315,11 @@ f10:: {
             Sleep(100)
             array := textToArray(notes)
             ; Peep(array)
+            MouseGetPos(&oldX, &oldY)
+            BlockInput ("MouseMove")
             SendInputForNotes(array)
+            BlockInput ("MouseMoveOff")
+            MouseMove(oldX, oldY, 2)
             ToolTip(getComments(notes), , , 2)
         } else {
             ToolTip("Cancelled!")
@@ -493,13 +642,13 @@ textToArray(text) {
 }
 
 ; quick reload when editing
-; #HotIf WinActive(A_ScriptName " ahk_exe Code.exe")
-; ~^s::
-; {
-;     ; Send("^s")
-;     ToolTip("Reloading " A_ScriptName ".", A_ScreenWidth / 2, A_ScreenHeight / 2)
-;     Sleep(250)
-;     Reload()
-;     ; MsgBox("reloading !")
-;     Return
-; }
+#HotIf WinActive(A_ScriptName " ahk_exe Code.exe")
+~^s::
+{
+    ; Send("^s")
+    ToolTip("Reloading " A_ScriptName ".", A_ScreenWidth / 2, A_ScreenHeight / 2)
+    Sleep(250)
+    Reload()
+    ; MsgBox("reloading !")
+    Return
+}
