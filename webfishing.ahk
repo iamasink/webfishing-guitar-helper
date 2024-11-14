@@ -151,7 +151,7 @@ f9:: {
 
 SendInputForNotes(array) {
     ; first figure out where everything is
-
+    ToolTip()
     topButtonX := IniRead("config.ini", "Button_Positions", "topButtonX", 0)
     topButtonY := IniRead("config.ini", "Button_Positions", "topButtonY", 0)
     topLeftX := IniRead("config.ini", "Button_Positions", "topLeftX", 0)
