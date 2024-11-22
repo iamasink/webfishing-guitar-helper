@@ -11,8 +11,8 @@ TraySetIcon("icon.ico")
 ; explanation of formats
 ; array format, an array containing 1-9 arrays, each referring to a preset. only used by the code, not users
 ; text format, space and newline delimited string, each space seperates one note, each line seperates one preset
-; if a line starts with a #, its ignored as a comment.
-; lines past the first 9 are also ignored. (be careful for songs that haven't got all 9 presets set!)
+; if a line starts with a #, its a comment.
+; lines past the first 9 are ignored if they do not start with a # (be careful for songs that haven't got all 9 presets set!), but can be used for metadata not needed ingame, eg the source of the presets etc
 ; eg
 ; 0 1 D# A#2 C F (newline)
 ; F A# D# G# C F
@@ -27,10 +27,6 @@ TraySetIcon("icon.ico")
 ; but they should really only be used for muted and default
 ; unless the whole thing is numbers to avoid confusion
 ;
-
-
-; 0 -> 15
-; columns := [0, 0, 0, 1, 13]
 
 
 ; notes := [
@@ -52,8 +48,7 @@ TraySetIcon("icon.ico")
 ;     ["G2", "C2", "F2", "A#2", "D2", "G2"]
 ; ]
 
-; left to right, top to bottom
-; array of note letters suffixed with 2 for the second on each string
+; array of note letters suffixed with 2 for the second note of same letter on each string
 notes := [
     ["E", "F", "F#", "G", "G#", "A", "A#", "B", "C", "C#", "D", "D#", "E2", "F2", "F#2", "G2"],
     ["A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A2", "A#2", "B2", "C2"],
@@ -64,28 +59,6 @@ notes := [
 ]
 
 
-; y 130 -> 1360
-; rows := [130, 210, 290, 375, 450, 540, 620, 700, 790, 870, 950, 1035, 1110, 1200, 1280, 1360]
-; rows := [0.09027777777777778,
-;     0.14,
-;     0.20,
-;     0.26,
-;     0.31,
-;     0.37,
-;     0.43,
-;     0.48,
-;     0.54,
-;     0.60,
-;     0.65,
-;     0.71,
-;     0.77,
-;     0.83,
-;     0.88,
-;     0.94]
-; ; x 460 -> 680
-; ; columns := [460, 500, 550, 590, 640, 680]
-; columns :=
-;     [0.179, 0.195, 0.214, 0.23, 0.25, 0.265]
 waitEnter() {
     KeyWait("Enter", "D")
     KeyWait("Enter")
@@ -125,7 +98,7 @@ setup() {
     WinGetPos(, , &winWidth, &winHeight, "ahk_exe webfishing.exe")
 
     ToolTip("")
-    MsgBox("got values:`n" topButtonX ", " topButtonY "`n" topLeftX ", " topLeftY "`n" bottomRightX ", " bottomRightY)
+    MsgBox("got values:`n" topButtonX ", " topButtonY "`n" topLeftX ", " topLeftY "`n" bottomRightX ", " bottomRightY, winWidth, winHeight)
     data :=
         "topButtonX = " topButtonX / winWidth
         . "`ntopButtonY = " topButtonY / winHeight
@@ -138,10 +111,12 @@ setup() {
 
 }
 f6:: {
+    BlockInput ("MouseMoveOff") ; always ensure mouse movement is re-enabled. probably not needed
     Reload()
 }
 
 f7:: {
+    BlockInput ("MouseMoveOff") ; always ensure mouse movement is re-enabled. probably not needed
     ToolTip()
     ToolTip(, , , 2)
 }
@@ -150,6 +125,7 @@ f8:: {
 }
 
 f9:: {
+    BlockInput ("MouseMoveOff") ; always ensure mouse movement is re-enabled. probably not needed
     ExitApp()
 }
 
@@ -345,24 +321,60 @@ f10:: {
             contents := FileRead(filePath)
             ; ToolTip("File: " filePath)
             Sleep(100)
-            array := textToArray(contents)
-            ; Peep(array)
+
+            arrayOfText := StrSplit(Trim(contents), "`n", "`r")
+
+            presetcount := 1
             text := ""
 
-            switch (option) {
-                case 1:
-                {
-                    ; if "Letters" selected
-                    letters := ConvertNumbersToLetters(array)
-                    text .= letters "`n"
-                }
-                case 2:
-                {
-                    ; if "Numbers" selected
-                    text .= arrayToSpaces(array, 1)
+            for i, v in arrayOfText {
+                ; for each line
+
+                ; Peep(v)
+                if (SubStr(Trim(v), 1, 1 == "#")) {
+                    ; if its a comment, dont increase presetcount
+                    ; but still output
+                    text .= v "`n"
+                } else {
+                    ; this *should* be a preset if presetcount <= 9
+                    if (presetcount <= 9) {
+                        ; this is a preset
+                        ; read the line and convert to letters
+
+                        array := convertOneLineToArray(v)
+                        res := normaliseNotesArrayToNumbersOnce(array)
+                        ; Peep(res)
+                        text .= ConvertNumbersToLettersOnce(res.array) "`n"
+
+                        ; Peep(text)
+                        presetcount++
+                    } else {
+                        ; this is a hidden (file only) comment
+                        ; so still output it for exporting!
+                        text .= v "`n"
+                    }
                 }
             }
-            text .= getComments(contents, true)
+
+            ;;;;;; instead of all this faff, why not just store them as letters and return the file? i dont like this format anyway!
+            ; array := textToArray(contents)
+            ; ; Peep(array)
+            ; text := ""
+
+            ; switch (option) {
+            ;     case 1:
+            ;     {
+            ;         ; if "Letters" selected
+            ;         letters := ConvertNumbersToLetters(array)
+            ;         text .= letters "`n"
+            ;     }
+            ;     case 2:
+            ;     {
+            ;         ; if "Numbers" selected
+            ;         text .= arrayToSpaces(array, 1)
+            ;     }
+            ; }
+            ; text .= getComments(contents, true)
             A_Clipboard := text
             ToolTip("Copied to clipboard!")
             myGui3.Destroy()
@@ -439,16 +451,16 @@ f10:: {
             notestext := EditNotesInput.Text
             notesArray := []
             ; if array format
-            if (InStr(notestext, "[")) {
-                ToolTip("you cant use arrays here!")
-            } else {
-                ; assume text format, convert to array
-                notesArray := textToArray(notestext)
-                ; convert array to numbers
-                newNotesArray := convertLetters(notesArray)
-                EditNotesPreview.Value := Trim(arrayToSpacesPretty(newNotesArray))
-                EditNotesPreview2.Value := Trim(arrayToSpaces(newNotesArray))
-            }
+            ; if (InStr(notestext, "[")) {
+            ;     ToolTip("you cant use arrays here!")
+            ; } else {
+            ; assume text format, convert to array
+            notesArray := textToArray(notestext)
+            ; convert array to numbers
+            newNotesArray := normaliseNotesArrayToNumbers(notesArray)
+            EditNotesPreview.Value := Trim(arrayToSpacesPretty(newNotesArray))
+            EditNotesPreview2.Value := Trim(ConvertNumbersToLetters(newNotesArray))
+            ; }
         }
         ; when add button clicked..
         OnSave(*) {
@@ -462,8 +474,43 @@ f10:: {
                 return
             }
 
-            valueSpaced := Trim(arrayToSpaces(newNotesArray))
-            FileAppend(valueSpaced, filePath)
+            presetcount := 1
+            text := ""
+            fulltext := EditNotesInput.Text
+            linesarray := StrSplit(Trim(fulltext), "`n", "`r")
+
+            for linenum, line in linesarray {
+
+                ; similar to oncopy
+                ; for each line
+
+                ; Peep(v)
+                if (SubStr(Trim(fulltext), 1, 1 == "#")) {
+                    ; if its a comment, dont increase presetcount
+                    ; but still output
+                    text .= line "`n"
+                } else {
+                    ; this *should* be a preset if presetcount <= 9
+                    if (presetcount <= 9) {
+                        ; this is a preset
+                        ; read the line and convert to letters
+
+                        array := convertOneLineToArray(line)
+                        res := normaliseNotesArrayToNumbersOnce(array)
+                        text .= arrayToSpacesOnce(res.array) "`n"
+                        ; Peep(text)
+                        presetcount++
+                    } else {
+                        ; this is a hidden (file only) comment
+                        ; so still output it for exporting!
+                        text .= line "`n"
+                    }
+                }
+
+
+            }
+            ; valueSpaced := Trim(arrayToSpaces(newNotesArray))
+            FileAppend(text, filePath)
             myGui2.Destroy()
             mainGui.Opt("-Disabled")
             ControlFocus(mainGui.Hwnd)
@@ -497,7 +544,7 @@ getComments(text, includeAll := false) {
 
         } else {
             if (SubStr(v, 1, 1) == "#" || i > 9) {
-                output .= v
+                output .= v "`n"
             }
         }
     }
@@ -514,111 +561,27 @@ getArrayValueIndex(arr, val) {
 }
 
 ; convert letters to array of array of note numbers
-convertLetters(array) {
-    issues := ""
+normaliseNotesArrayToNumbers(array) {
+    issues := []
     output := []
     for i, v in array {
         row := v
-        newarray := []
-        for index, value in row {
-            value := Trim(StrUpper(value))
-            ; noteletter := value
-            notenumber := 0
-            ; MsgBox(index " : " value)
-            ; if it is already a number
-            if (IsNumber(value)) {
-                if (value > 16 || value < 0) {
-                    issues := issues value " invalid (0)`n"
-                    notenumber := 0
-                } else {
-                    notenumber := value
-                }
-
-            } else {
-                ; handle 1 character
-                if (StrLen(value) == 1) {
-                    if (value == "X") {
-                        ; unset note
-                        notenumber := 0
-                    } else {
-                        noteletter := value
-                        arrayIndex := getArrayValueIndex(notes[index], noteletter)
-                        if (arrayIndex == -1) {
-                            issues := issues value " invalid (1)`n"
-                            notenumber := 0
-                        } else {
-                            notenumber := arrayIndex
-                        }
-                    }
-
-                }
-
-                ; two character
-                else if (StrLen(value) == 2) {
-                    ; if the string is like "E#"
-                    if (SubStr(value, 2, 1) == "#") {
-                        ; all is well
-                        noteletter := SubStr(value, 1, 2)
-                    }
-                    ; if it has a 1, remove it
-                    else if (SubStr(value, 2, 1) == "1") {
-                        noteletter := SubStr(value, 1, 1)
-                    }
-                    ; if it has a 2, keep it
-                    else if (SubStr(value, 2, 1) == "2") {
-                        noteletter := SubStr(value, 1, 2)
-                    } else {
-                        ; invalid letter
-                        ; MsgBox("invalid: " value " / " value)
-                        issues := issues value " invalid (2, 1)`n"
-
-                        noteletter := 0
-                    }
-                    arrayIndex := getArrayValueIndex(notes[index], noteletter)
-                    if (arrayIndex == -1) {
-                        issues := issues value " invalid (2, 2)`n"
-                        notenumber := 0
-                    } else {
-                        notenumber := arrayIndex
-                    }
-
-                    ; 3 character
-                } else if (StrLen(value) == 3) {
-                    if (SubStr(value, 3, 1) == "1") {
-                        noteletter := SubStr(value, 1, 2)
-                        ; MsgBox(noteletter)
-                    }
-                    else if (SubStr(value, 3, 1) == "2") {
-                        noteletter := SubStr(value, 1, 3)
-                    } else {
-                        ; invalid
-                        ; MsgBox("invalid: " value " / " noteletter)
-                        issues := issues value " invalid (3, 1)`n"
-                        noteletter := 0
-                    }
-                    arrayIndex := getArrayValueIndex(notes[index], noteletter)
-                    if (arrayIndex == -1) {
-                        issues := issues value " invalid (3, 2)`n"
-
-                        notenumber := 0
-                    } else {
-                        notenumber := arrayIndex
-                    }
-                } else {
-                    ; MsgBox("' " value " ' Is Invalid!!")
-                    issues := issues value " invalid`n"
-                    notenumber := 0
-                }
-
-
-            }
-            newarray.Push(notenumber)
+        res := normaliseNotesArrayToNumbersOnce(row)
+        newarray := res.array
+        if (res.issues) {
+            issues.Push(res.issues)
         }
         output.push(newarray)
     }
     ; if (StrLen(issues) > 1) {
-    if (StrLen(issues)) {
-        ToolTip("issues: " issues, , , 2)
+    ; Peep(issues)
+
+    if (issues.Length) {
+        text := ""
+        for i, v in issues {
+            text .= v "`n"
+        }
+        ToolTip("issues: " text, , , 2)
     } else {
         ToolTip(, , , 2)
     }
@@ -626,29 +589,137 @@ convertLetters(array) {
     return output
 }
 
+normaliseNotesArrayToNumbersOnce(array) {
+    newarray := []
+    issues := ""
+    for index, value in array {
+        value := Trim(StrUpper(value))
+        ; noteletter := value
+        notenumber := 0
+        ; MsgBox(index " : " value)
+        ; if it is already a number
+        if (IsNumber(value)) {
+            if (value > 16 || value < 0) {
+                issues .= value " invalid (0)`n"
+                notenumber := 0
+            } else {
+                notenumber := value
+            }
+        } else {
+            ; handle 1 character
+            if (StrLen(value) == 1) {
+                if (value == "X") {
+                    ; unset note
+                    notenumber := 0
+                } else {
+                    noteletter := value
+                    arrayIndex := getArrayValueIndex(notes[index], noteletter)
+                    if (arrayIndex == -1) {
+                        issues .= value " invalid (1)`n"
+                        notenumber := 0
+                    } else {
+                        notenumber := arrayIndex
+                    }
+                }
+            }
+
+            ; two character
+            else if (StrLen(value) == 2) {
+                ; if the string is like "E#"
+                if (SubStr(value, 2, 1) == "#") {
+                    ; all is well
+                    noteletter := SubStr(value, 1, 2)
+                }
+                ; if it has a 1, remove it
+                else if (SubStr(value, 2, 1) == "1") {
+                    noteletter := SubStr(value, 1, 1)
+                }
+                ; if it has a 2, keep it
+                else if (SubStr(value, 2, 1) == "2") {
+                    noteletter := SubStr(value, 1, 2)
+                } else {
+                    ; invalid letter
+                    ; MsgBox("invalid: " value " / " value)
+                    issues .= value " invalid (2, 1)`n"
+
+                    noteletter := 0
+                }
+                arrayIndex := getArrayValueIndex(notes[index], noteletter)
+                if (arrayIndex == -1) {
+                    issues .= value " invalid (2, 2)`n"
+                    notenumber := 0
+                } else {
+                    notenumber := arrayIndex
+                }
+
+                ; 3 character
+            } else if (StrLen(value) == 3) {
+                if (SubStr(value, 3, 1) == "1") {
+                    noteletter := SubStr(value, 1, 2)
+                    ; MsgBox(noteletter)
+                }
+                else if (SubStr(value, 3, 1) == "2") {
+                    noteletter := SubStr(value, 1, 3)
+                } else {
+                    ; invalid
+                    ; MsgBox("invalid: " value " / " noteletter)
+                    issues .= value " invalid (3, 1)`n"
+                    noteletter := 0
+                }
+                arrayIndex := getArrayValueIndex(notes[index], noteletter)
+                if (arrayIndex == -1) {
+                    issues .= value " invalid (3, 2)`n"
+
+                    notenumber := 0
+                } else {
+                    notenumber := arrayIndex
+                }
+            } else {
+                ; MsgBox("' " value " ' Is Invalid!!")
+                issues .= value " invalid`n"
+                notenumber := 0
+            }
+
+
+        }
+        newarray.Push(notenumber)
+    }
+    return { array: newarray, issues: issues }
+}
+
+; convert array to text with spaces
 arrayToSpaces(array, maxSpaces := 3) {
     while (array.Length < 9) {
         array.Push([0, 0, 0, 0, 0, 0])
     }
+    text := ""
     num := 0
     loop 9 {
         num += 1
         row := array[num]
-        rowText := ""  ; Initialize a string to store the current row
-        for element in row {
-            rowText .= element . " "
-            spaces := maxSpaces - StrLen(element)
-            loop spaces {
-                rowText := rowText . " "
-            }
-        }
-        text .= rowText "`n"  ; Append the row text to the final text
+        text .= arrayToSpacesOnce(row, maxSpaces) "`n"
     }
     ; remove final newline
     text := SubStr(text, 1, -2)
     return text
 }
+arrayToSpacesWithComments(array, maxSpaces := 3) {
 
+}
+
+arrayToSpacesOnce(array, maxSpaces := 3) {
+    rowText := ""  ; Initialize a string to store the current row
+    for element in array {
+        rowText .= element . " "
+        spaces := maxSpaces - StrLen(element)
+        loop spaces {
+            rowText := rowText . " "
+        }
+    }
+    return rowText  ; Append the row text to the final text
+}
+
+; used for gui with numbers per line
 arrayToSpacesPretty(array) {
     text := ""
     for i, row in array {
@@ -673,7 +744,7 @@ arrayToSpacesPretty(array) {
 
 ; convert a space and newline delimited string into an array of arrays containing the text
 textToArray(text) {
-    text := Trim(text, "     `n`r`t")
+    text := Trim(text, " `n`r`t")
     ; split by newlines
     arrayOfText := StrSplit(Trim(text), "`n", "`r")
     ; Peep(arrayOfText)
@@ -682,7 +753,7 @@ textToArray(text) {
     linenumber := 1
     ; for each array split by newline
     for i, v in arrayOfText {
-        ; if its too high, dont do anything
+        ; if its after 9th row, dont do anything
         if (linenumber > 9) {
             continue
         }
@@ -692,59 +763,41 @@ textToArray(text) {
             continue
         }
 
-        ; add to newArray
-        line := StrSplit(Trim(arrayOfText[i]), " ")
-        ; ensure any unnecessary spaces are removed
-        newline := []
-        for i, v in line {
-            if (StrLen(v) > 0) {
-                newline.Push(v)
-            }
-        }
-        line := newline
-
-        ; ensure line is exactly 6 long
-        while (line.Length < 6) {
-            line.Push(0)
-        }
-        while (line && line.Length > 6) {
-            line.Pop()
-        }
-        newArray.push(line)
+        newArray.push(convertOneLineToArray(arrayOfText[i]))
         linenumber += 1
     }
     ; Peep(newArray)
     return newArray
 }
 
-ConvertNumbersToLetters(array, spaceChar := " ") {
+convertOneLineToArray(text) {
+    ; add to newArray
+    line := StrSplit(Trim(text), " ")
+    ; ensure any unnecessary spaces are removed
+    newline := []
+    for i, v in line {
+        if (StrLen(v) > 0) {
+            newline.Push(v)
+        }
+    }
+    line := newline
+
+    ; ensure line is exactly 6 long
+    while (line.Length < 6) {
+        line.Push(0)
+    }
+    while (line && line.Length > 6) {
+        line.Pop()
+    }
+    return line
+}
+
+; converts numbers in an array to letters as text
+ConvertNumbersToLetters(array, spaceChar := " ", spacelen := 4) {
     text := ""
     ; 1-9 for each preset
     for i, notespreset in array {
-        ; Peep(notespreset)
-        ; i is index 1-9
-        ; notes is the array of note strings
-        rowText := ""  ; Initialize a string to store the current row
-        ; for each note
-        for i, note in notespreset {
-            if (note == 0) {
-                letternote := "x"
-            } else {
-                column := notes[i]
-                letternote := column[Integer(note)]
-            }
-            rowText .= letternote
-            spaces := 3 - StrLen(letternote)
-            loop spaces {
-                rowText .= spaceChar
-            }
-            ; Peep(rowText)
-        }
-
-        ; add space
-        ; rowText .= " "
-
-        text .= rowText "`n"  ; Append the row text to the final text
+        text .= ConvertNumbersToLettersOnce(notespreset, spaceChar, spacelen) "`n"  ; Append the row text to the final text
     }
     ; if (StrLen(text) == 0) {
 
@@ -755,6 +808,32 @@ ConvertNumbersToLetters(array, spaceChar := " ") {
     return text
 }
 
+ConvertNumbersToLettersOnce(array, spaceChar := " ", spacelen := 4) {
+    text := ""
+    ; Peep(notespreset)
+    ; i is index 1-9
+    ; notes is the array of note strings
+    ; for each note
+    for i, note in array {
+        if (note == 0) {
+            letternote := "x"
+        } else {
+            column := notes[i]
+            letternote := column[Integer(note)]
+        }
+        text .= letternote
+        spaces := spacelen - StrLen(letternote)
+        loop spaces {
+            text .= spaceChar
+        }
+        ; Peep(rowText)
+    }
+
+    ; add space
+    ; text .= " "
+
+    return text
+}
 
 ; rebind numpad to number keys
 #HotIf WinActive('WEBFISHING')
