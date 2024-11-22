@@ -5,7 +5,7 @@ CoordMode("Mouse", "Client")
 CoordMode("ToolTip", "Client")
 
 
-#Include Peep.v2.ahk
+; #Include Peep.v2.ahk
 TraySetIcon("icon.ico")
 
 ; explanation of formats
@@ -341,7 +341,7 @@ f10:: {
             ; ToolTip("File: " filePath)
             Sleep(100)
             array := textToArray(notes)
-            Peep(array)
+            ; Peep(array)
 
             switch (option) {
                 case 1:
@@ -700,7 +700,7 @@ ConvertNumbersToLetters(array, spaceChar := " ") {
     text := ""
     ; 1-9 for each preset
     for i, notespreset in array {
-        Peep(notespreset)
+        ; Peep(notespreset)
         ; i is index 1-9
         ; notes is the array of note strings
         rowText := ""  ; Initialize a string to store the current row
@@ -717,7 +717,7 @@ ConvertNumbersToLetters(array, spaceChar := " ") {
             loop spaces {
                 rowText .= spaceChar
             }
-            Peep(rowText)
+            ; Peep(rowText)
         }
 
         ; add space
