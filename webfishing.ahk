@@ -278,20 +278,52 @@ f10:: {
     ; static so isnt reset
     ; show gui
     static mainGui := Gui()
+    disablebuttons := 1
     ListBox := mainGui.Add("ListBox", "x10 y8 w120 h160",)
-    ButtonChoose := mainGui.Add("Button", "x136 y144 w80 h23", "&Choose")
     ButtonAdd := mainGui.Add("Button", "x136 y8 w80 h23", "Add...")
-    ButtonRemove := mainGui.Add("Button", "x136 y32 w80 h23", "Remove")
-    ButtonExport := mainGui.Add("Button", "x136 y56 w80 h23", "Export")
-    ButtonChoose.OnEvent("Click", OnChoose)
+    ButtonRemove := mainGui.Add("Button", "x136 y32 w80 h23 Disabled" disablebuttons, "Remove")
+    ButtonExport := mainGui.Add("Button", "x136 y56 w80 h23 Disabled" disablebuttons, "Export")
+    ButtonTooltip := mainGui.Add("Button", "x136 y110 w80 h32 Disabled" disablebuttons, "Show Tooltip Again")
+
+    ButtonChoose := mainGui.Add("Button", "x136 y144 w80 h23 Disabled" disablebuttons, "&Choose")
+
+    ListBox.OnEvent("Change", OnChange)
+
     ButtonAdd.OnEvent("Click", OnAdd)
     ButtonRemove.OnEvent("Click", OnDelete)
     ButtonExport.OnEvent("Click", OnExport)
+    ButtonTooltip.OnEvent("Click", OnTooltip)
+
+    ButtonChoose.OnEvent("Click", OnChoose)
     mainGui.Title := "Window"
+
+    OnChange(*) {
+        ButtonRemove.Opt("-Disabled")
+        ButtonExport.Opt("-Disabled")
+        ButtonChoose.Opt("-Disabled")
+    }
 
     OnDelete(*) {
         ToolTip("this isn't implemented yet. you can delete presets from the 'songs/' folder for now!")
         SetTimer () => ToolTip(), -5000 ; tooltip timer
+    }
+
+    OnTooltip(*) {
+        filePath := A_ScriptDir "/songs/" ListBox.Text
+        mainGui.Minimize()
+        ; start
+        ToolTip()
+        notes := FileRead(filePath)
+        ; ToolTip("File: " filePath)
+        Sleep(100)
+        array := textToArray(notes)
+        ; Peep(array)
+        MouseGetPos(&oldX, &oldY)
+        MouseMove(0, 0, 1)
+        Sleep(50)
+        ToolTip(getComments(notes), , , 2)
+        Sleep(50)
+        MouseMove(oldX, oldY, 2)
     }
 
     OnExport(*) {
@@ -386,7 +418,7 @@ f10:: {
 
     OnChoose(*) {
         filePath := A_ScriptDir "/songs/" ListBox.Text
-        mainGui.Destroy()
+        mainGui.Minimize()
         ; MsgBox("Remember to not move your mouse while the guitar is being set!`nClose this popup then open the guitar and press enter.`nFile: " filePath)
         ToolTip("Open the guitar, then press enter!`nOr f6 to cancel")
         key := KeyWait("Enter", "D T6")
@@ -401,10 +433,11 @@ f10:: {
             MouseGetPos(&oldX, &oldY)
             SendInputForNotes(array)
             MouseMove(0, 0, 1)
-            Sleep(10)
+            Sleep(50)
             ToolTip(getComments(notes), , , 2)
-            Sleep(10)
+            Sleep(50)
             MouseMove(oldX, oldY, 2)
+            ButtonTooltip.Opt("-Disabled")
         } else {
             ToolTip("Cancelled!")
             Sleep(5000)
