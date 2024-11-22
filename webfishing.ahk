@@ -139,12 +139,12 @@ SendInputForNotes(array) {
     bottomRightX := IniRead("config.ini", "Button_Positions", "bottomRightX", 0)
     bottomRightY := IniRead("config.ini", "Button_Positions", "bottomRightY", 0)
     if (
-        topButtonX >= 0 ||
-        topButtonY >= 0 ||
-        topLeftX >= 0 ||
-        topLeftY >= 0 ||
-        bottomRightX >= 0 ||
-        bottomRightY >= 0
+        topButtonX <= 0 ||
+        topButtonY <= 0 ||
+        topLeftX <= 0 ||
+        topLeftY <= 0 ||
+        bottomRightX <= 0 ||
+        bottomRightY <= 0
     ) {
         MsgBox("the button positions are not set or invalid, run setup first!")
         Return
