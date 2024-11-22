@@ -5,8 +5,8 @@
 1 1 1 1 1 1
 16 16 16 16 16 16
 1
-# this is an inline comment
+# this is an invalid inline comment
 16
 0
 comment2 that wont show ingame
-# funny comment that isnt necessary
+# comment that will be shown in game
