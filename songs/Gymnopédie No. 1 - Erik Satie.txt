@@ -1,0 +1,18 @@
+7   13  13  11  11  9   
+2   13  11  10  11  7   
+7   13  13  10  7   0   
+6   13  11  10  0   0   
+11  13  13  11  11  9   
+4   14  13  11  9   7   
+2   12  11  11  7   5   
+9   11  14  6   4   2   
+0   0   0   0   0   0
+from https://steamcommunity.com/sharedfiles/filedetails/?id=3356566613&searchtext=guitar
+#1 q [wer] ->2 q [wer]
+#1 q [wer] ->2 q [wer]
+#1 q [ert] y ->2 y [ert] r ->3 [we] [qr] t ->2 [qe] [wer]
+#1 q [wer] ->2 q [wer]
+#1 q [wer] ->2 q [wer]
+#1 q [ert] y ->2 y [ert] r ->3 [we] [qr] t ->2 [qe] [wer]
+#4 [qr] [wer] ->5 [qert] [wer] ->6 [qt] [wr] q [wey]
+#7 q [wer] ->8 q [wer] rtyt r w e w q
