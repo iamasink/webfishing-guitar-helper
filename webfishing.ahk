@@ -5,7 +5,7 @@ CoordMode("Mouse", "Client")
 CoordMode("ToolTip", "Client")
 
 
-; #Include Peep.v2.ahk
+#Include Peep.v2.ahk
 TraySetIcon("icon.ico")
 
 ; explanation of formats
@@ -53,6 +53,7 @@ TraySetIcon("icon.ico")
 ; ]
 
 ; left to right, top to bottom
+; array of note letters suffixed with 2 for the second on each string
 notes := [
     ["E", "F", "F#", "G", "G#", "A", "A#", "B", "C", "C#", "D", "D#", "E2", "F2", "F#2", "G2"],
     ["A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A2", "A#2", "B2", "C2"],
@@ -92,7 +93,7 @@ waitEnter() {
 }
 
 setup() {
-    ToolTip("Starting setup, open the guitar!`nWe will now setup the note positions..`nPress enter to proceed.")
+    ToolTip("Starting setup, open the guitar!`nWe will now setup the note positions..`nPress enter to proceed. Or f6 to cancel.")
     waitEnter()
     ToolTip("Now click on the top right button to set the whole row to 'EADGBE', and position your mouse in the centre of that button.`nPress enter when done")
     waitEnter()
@@ -137,6 +138,10 @@ setup() {
     IniWrite(data, "config.ini", "Button_Positions")
 
 }
+f6:: {
+    Reload()
+}
+
 f7:: {
     ToolTip()
     ToolTip(, , , 2)
@@ -159,12 +164,12 @@ SendInputForNotes(array) {
     bottomRightX := IniRead("config.ini", "Button_Positions", "bottomRightX", 0)
     bottomRightY := IniRead("config.ini", "Button_Positions", "bottomRightY", 0)
     if (
-        topButtonX == 0 ||
-        topButtonY == 0 ||
-        topLeftX == 0 ||
-        topLeftY == 0 ||
-        bottomRightX == 0 ||
-        bottomRightY == 0
+        topButtonX >= 0 ||
+        topButtonY >= 0 ||
+        topLeftX >= 0 ||
+        topLeftY >= 0 ||
+        bottomRightX >= 0 ||
+        bottomRightY >= 0
     ) {
         MsgBox("the button positions are not set or invalid, run setup first!")
         Return
@@ -301,18 +306,59 @@ f10:: {
     ButtonChoose := myGui.Add("Button", "x136 y144 w80 h23", "&Choose")
     ButtonAdd := myGui.Add("Button", "x136 y8 w80 h23", "Add...")
     ButtonRemove := myGui.Add("Button", "x136 y32 w80 h23", "Remove")
+    ButtonExport := myGui.Add("Button", "x136 y56 w80 h23", "Export")
     ButtonChoose.OnEvent("Click", OnChoose)
     ButtonAdd.OnEvent("Click", OnAdd)
-    ButtonRemove.OnEvent("Click", OnEventHandler)
+    ButtonRemove.OnEvent("Click", OnDelete)
+    ButtonExport.OnEvent("Click", OnExport)
     myGui.Title := "Window"
 
-    OnEventHandler(*) {
-        ToolTip("Click! This is a sample action.`n"
-            . "Active GUI element values include:`n"
-            . "ButtonChoose => " ButtonChoose.Text "`n"
-            . "ButtonAdd => " ButtonAdd.Text "`n"
-            . "ButtonRemove => " ButtonRemove.Text "`n", 77, 277)
-        SetTimer () => ToolTip(), -3000 ; tooltip timer
+    OnDelete(*) {
+        ToolTip("this isn't implemented yet. you can delete presets from the 'songs/' folder for now!")
+        SetTimer () => ToolTip(), -5000 ; tooltip timer
+    }
+
+    OnExport(*) {
+        filePath := A_ScriptDir "/songs/" ListBox.Text
+        ToolTip("Exporting file to clipboard..")
+        myGui3 := Gui()
+        myGui3.Opt("+Owner" myGui.Hwnd)
+        myGui.Opt("+Disabled")  ; Force the user to dismiss this window before returning to the main window.
+        myGui3.AddText("r1 x10 y5", "Exporting file " . filePath)
+        DropDown := myGui3.AddDropDownList("x10 y24 w180", ["Letters (Suggested)", "Numbers"])
+        DropDown.Value := 1
+        ButtonCopy := myGui3.Add("Button", "x10 y48 w80 h23", "&Copy")
+        ButtonCopy.OnEvent("Click", OnCopy)
+
+        myGui3.Title := "Window"
+        myGui3.Show("w640 h250")
+
+        OnCopy(*) {
+            option := DropDown.Value
+            ToolTip("selected" . option)
+            ; read the file
+            notes := FileRead(filePath)
+            ; ToolTip("File: " filePath)
+            Sleep(100)
+            array := textToArray(notes)
+            Peep(array)
+
+            switch (option) {
+                case 1:
+                {
+                    ; if "Letters" selected
+                    letters := ConvertNumbersToLetters(array)
+                    A_Clipboard := letters
+                }
+                case 2:
+                {
+                    ; if "Numbers" selected
+                    A_Clipboard := arrayToSpaces(array, 1)
+                }
+            }
+        }
+
+
     }
 
     OnChoose(*) {
@@ -344,7 +390,6 @@ f10:: {
     }
 
     OnAdd(*) {
-
         ; show another gui popup.
         myGui2 := Gui()
         myGui2.Opt("+Owner" myGui.Hwnd)
@@ -560,7 +605,7 @@ convertLetters(array) {
     return output
 }
 
-arrayToSpaces(array) {
+arrayToSpaces(array, maxSpaces := 3) {
     while (array.Length < 9) {
         array.Push([0, 0, 0, 0, 0, 0])
     }
@@ -571,7 +616,7 @@ arrayToSpaces(array) {
         rowText := ""  ; Initialize a string to store the current row
         for element in row {
             rowText .= element . " "
-            spaces := 3 - StrLen(element)
+            spaces := maxSpaces - StrLen(element)
             loop spaces {
                 rowText := rowText . " "
             }
@@ -649,6 +694,44 @@ textToArray(text) {
     }
     ; Peep(newArray)
     return newArray
+}
+
+ConvertNumbersToLetters(array, spaceChar := " ") {
+    text := ""
+    ; 1-9 for each preset
+    for i, notespreset in array {
+        Peep(notespreset)
+        ; i is index 1-9
+        ; notes is the array of note strings
+        rowText := ""  ; Initialize a string to store the current row
+        ; for each note
+        for i, note in notespreset {
+            if (note == 0) {
+                letternote := "x"
+            } else {
+                column := notes[i]
+                letternote := column[Integer(note)]
+            }
+            rowText .= letternote
+            spaces := 3 - StrLen(letternote)
+            loop spaces {
+                rowText .= spaceChar
+            }
+            Peep(rowText)
+        }
+
+        ; add space
+        ; rowText .= " "
+
+        text .= rowText "`n"  ; Append the row text to the final text
+    }
+    ; if (StrLen(text) == 0) {
+
+    ; } else {
+    ; remove final newline
+    text := SubStr(text, 1, -2)
+    ; }
+    return text
 }
 
 ; rebind numpad to number keys
