@@ -64,7 +64,6 @@ notes := [
 ]
 
 
-tuning := ""
 ; y 130 -> 1360
 ; rows := [130, 210, 290, 375, 450, 540, 620, 700, 790, 870, 950, 1035, 1110, 1200, 1280, 1360]
 ; rows := [0.09027777777777778,
@@ -300,18 +299,19 @@ convertNotesArrayToText(array) {
 }
 
 f10:: {
+    ; static so isnt reset
     ; show gui
-    myGui := Gui()
-    ListBox := myGui.Add("ListBox", "x10 y8 w120 h160",)
-    ButtonChoose := myGui.Add("Button", "x136 y144 w80 h23", "&Choose")
-    ButtonAdd := myGui.Add("Button", "x136 y8 w80 h23", "Add...")
-    ButtonRemove := myGui.Add("Button", "x136 y32 w80 h23", "Remove")
-    ButtonExport := myGui.Add("Button", "x136 y56 w80 h23", "Export")
+    static mainGui := Gui()
+    ListBox := mainGui.Add("ListBox", "x10 y8 w120 h160",)
+    ButtonChoose := mainGui.Add("Button", "x136 y144 w80 h23", "&Choose")
+    ButtonAdd := mainGui.Add("Button", "x136 y8 w80 h23", "Add...")
+    ButtonRemove := mainGui.Add("Button", "x136 y32 w80 h23", "Remove")
+    ButtonExport := mainGui.Add("Button", "x136 y56 w80 h23", "Export")
     ButtonChoose.OnEvent("Click", OnChoose)
     ButtonAdd.OnEvent("Click", OnAdd)
     ButtonRemove.OnEvent("Click", OnDelete)
     ButtonExport.OnEvent("Click", OnExport)
-    myGui.Title := "Window"
+    mainGui.Title := "Window"
 
     OnDelete(*) {
         ToolTip("this isn't implemented yet. you can delete presets from the 'songs/' folder for now!")
@@ -320,52 +320,63 @@ f10:: {
 
     OnExport(*) {
         filePath := A_ScriptDir "/songs/" ListBox.Text
-        ToolTip("Exporting file to clipboard..")
+        ; ToolTip("Exporting file to clipboard..")
         myGui3 := Gui()
-        myGui3.Opt("+Owner" myGui.Hwnd)
-        myGui.Opt("+Disabled")  ; Force the user to dismiss this window before returning to the main window.
+        myGui3.Opt("+Owner" mainGui.Hwnd)
+        mainGui.Opt("+Disabled")  ; Force the user to dismiss this window before returning to the main window.
         myGui3.AddText("r1 x10 y5", "Exporting file " . filePath)
         DropDown := myGui3.AddDropDownList("x10 y24 w180", ["Letters (Suggested)", "Numbers"])
         DropDown.Value := 1
         ButtonCopy := myGui3.Add("Button", "x10 y48 w80 h23", "&Copy")
+        myGui3.Add("Text", "x10 y80 w270 h50", "You can also share the files in the songs folder manually")
         ButtonCopy.OnEvent("Click", OnCopy)
 
-        myGui3.Title := "Window"
+        myGui3.OnEvent('Close', (*) =>
+            mainGui.Opt("-Disabled")
+            ControlFocus(mainGui.Hwnd))
+
+        myGui3.Title := "Export..."
         myGui3.Show("w640 h250")
 
         OnCopy(*) {
             option := DropDown.Value
-            ToolTip("selected" . option)
+            ; ToolTip("selected" . option)
             ; read the file
-            notes := FileRead(filePath)
+            contents := FileRead(filePath)
             ; ToolTip("File: " filePath)
             Sleep(100)
-            array := textToArray(notes)
+            array := textToArray(contents)
             ; Peep(array)
+            text := ""
 
             switch (option) {
                 case 1:
                 {
                     ; if "Letters" selected
                     letters := ConvertNumbersToLetters(array)
-                    A_Clipboard := letters
+                    text .= letters "`n"
                 }
                 case 2:
                 {
                     ; if "Numbers" selected
-                    A_Clipboard := arrayToSpaces(array, 1)
+                    text .= arrayToSpaces(array, 1)
                 }
             }
+            text .= getComments(contents, true)
+            A_Clipboard := text
+            ToolTip("Copied to clipboard!")
+            myGui3.Destroy()
+            mainGui.Opt("-Disabled")
+            ControlFocus(mainGui.Hwnd)
+            SetTimer () => ToolTip(), -5000
         }
-
-
     }
 
     OnChoose(*) {
         filePath := A_ScriptDir "/songs/" ListBox.Text
-        myGui.Destroy()
+        mainGui.Destroy()
         ; MsgBox("Remember to not move your mouse while the guitar is being set!`nClose this popup then open the guitar and press enter.`nFile: " filePath)
-        ToolTip("Open the guitar, then press enter!")
+        ToolTip("Open the guitar, then press enter!`nOr f6 to cancel")
         key := KeyWait("Enter", "D T6")
         if (key) {
             ; start
@@ -392,8 +403,8 @@ f10:: {
     OnAdd(*) {
         ; show another gui popup.
         myGui2 := Gui()
-        myGui2.Opt("+Owner" myGui.Hwnd)
-        myGui.Opt("+Disabled")  ; Force the user to dismiss this window before returning to the main window.
+        myGui2.Opt("+Owner" mainGui.Hwnd)
+        mainGui.Opt("+Disabled")  ; Force the user to dismiss this window before returning to the main window.
         ; add components
         myGui2.AddText("r1 x10 y5", "Name:")
         EditNameInput := myGui2.Add("Edit", "r1 x10 y20 w100 h20")
@@ -412,7 +423,9 @@ f10:: {
         EditNotesInput.OnEvent("Change", OnEdit)
         ; ButtonCheck.OnEvent("Click", OnEdit)
         ButtonAdd2.OnEvent("Click", OnSave)
-        myGui2.OnEvent('Close', (*) => myGui.Opt("-Disabled"))
+        myGui2.OnEvent('Close', (*) =>
+            mainGui.Opt("-Disabled")
+            ControlFocus(mainGui.Hwnd))
 
 
         ; show window
@@ -451,8 +464,9 @@ f10:: {
 
             valueSpaced := Trim(arrayToSpaces(newNotesArray))
             FileAppend(valueSpaced, filePath)
-            myGui.Opt("-Disabled")
             myGui2.Destroy()
+            mainGui.Opt("-Disabled")
+            ControlFocus(mainGui.Hwnd)
             ; refresh listbox
             ListBox.Delete()
             loop files A_ScriptDir "\songs\*.txt" {
@@ -462,7 +476,7 @@ f10:: {
     }
 
 
-    myGui.Show("w223 h176")
+    mainGui.Show("w223 h176")
     ListBox.Delete()
     loop files A_ScriptDir "\songs\*.txt" {
         ListBox.Add([A_LoopFileName])
@@ -470,14 +484,21 @@ f10:: {
 }
 
 
-getComments(text) {
+getComments(text, includeAll := false) {
     output := ""
     arrayOfText := StrSplit(Trim(text), "`n", "`r")
     for i, v in arrayOfText {
-        if (SubStr(v, 1, 1) == "#") {
-            ; this is a comment
-            ; strip #
-            output .= Trim(SubStr(v, 2)) "`n"
+        if (includeAll) {
+            if (SubStr(v, 1, 1) == "#") {
+                ; this is a comment
+                ; strip #
+                output .= Trim(SubStr(v, 2)) "`n"
+            }
+
+        } else {
+            if (SubStr(v, 1, 1) == "#" || i > 9) {
+                output .= v
+            }
         }
     }
     return output
@@ -733,6 +754,7 @@ ConvertNumbersToLetters(array, spaceChar := " ") {
     ; }
     return text
 }
+
 
 ; rebind numpad to number keys
 #HotIf WinActive('WEBFISHING')
