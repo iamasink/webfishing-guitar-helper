@@ -64,6 +64,16 @@ waitEnter() {
     KeyWait("Enter")
 }
 
+checkIfGameRunning() {
+    if (!WinExist("ahk_exe webfishing.exe")) {
+        a := MsgBox("Webfishing isn't running, but the autohotkey guitar script still is.`nExit the script?`n(press no and you can still add/export presets)", "Webfishing Guitar Helper", "0x4")
+        if (a == "Yes") {
+            BlockInput ("MouseMoveOff") ; always ensure mouse movement is re-enabled. probably not needed
+            ExitApp()
+        }
+    }
+}
+
 setup() {
     ToolTip("Starting setup, open the guitar!`nWe will now setup the note positions..`nPress enter to proceed. Or f6 to cancel.")
     waitEnter()
@@ -110,21 +120,24 @@ setup() {
     IniWrite(data, "config.ini", "Button_Positions")
 
 }
-f6:: {
+~f6:: {
+    checkIfGameRunning()
     BlockInput ("MouseMoveOff") ; always ensure mouse movement is re-enabled. probably not needed
     Reload()
 }
 
-f7:: {
+~f7:: {
+    checkIfGameRunning()
     BlockInput ("MouseMoveOff") ; always ensure mouse movement is re-enabled. probably not needed
     ToolTip()
     ToolTip(, , , 2)
 }
-f8:: {
+~f8:: {
+    checkIfGameRunning()
     setup()
 }
 
-f9:: {
+~f9:: {
     BlockInput ("MouseMoveOff") ; always ensure mouse movement is re-enabled. probably not needed
     ExitApp()
 }
@@ -275,17 +288,23 @@ convertNotesArrayToText(array) {
 }
 
 f10:: {
+    checkIfGameRunning()
     ; static so isnt reset
     ; show gui
     static mainGui := Gui()
     disablebuttons := 1
-    ListBox := mainGui.Add("ListBox", "x10 y8 w120 h160",)
-    ButtonAdd := mainGui.Add("Button", "x136 y8 w80 h23", "Add...")
-    ButtonRemove := mainGui.Add("Button", "x136 y32 w80 h23 Disabled" disablebuttons, "Remove")
-    ButtonExport := mainGui.Add("Button", "x136 y56 w80 h23 Disabled" disablebuttons, "Export")
-    ButtonTooltip := mainGui.Add("Button", "x136 y110 w80 h32 Disabled" disablebuttons, "Show Tooltip Again")
+    ListBox := mainGui.Add("ListBox", "x10 y8 w195 h160",)
+    ButtonAdd := mainGui.Add("Button", "x210 y8 w80 h23", "Add...")
+    ButtonRemove := mainGui.Add("Button", "x210 y32 w80 h23 Disabled" disablebuttons, "Remove")
+    ButtonExport := mainGui.Add("Button", "x210 y56 w80 h23 Disabled" disablebuttons, "Export")
+    ButtonTooltip := mainGui.Add("Button", "x210 y110 w80 h32 Disabled" disablebuttons, "Show Tooltip Again")
 
-    ButtonChoose := mainGui.Add("Button", "x136 y144 w80 h23 Disabled" disablebuttons, "&Choose")
+    ButtonChoose := mainGui.Add("Button", "x210 y144 w80 h23 Disabled" disablebuttons, "&Choose")
+
+    mainGui.Add("Text", "x10 y180 w315 h2 +0x10")
+    Note := mainGui.Add("Text", "x10 y185 w150 h125", "Hotkeys for this script: `nf6 - reload`nf7 - clear tooltip`nf8 - run setup`nf9 - close script`nf10 - open window")
+    Note2 := mainGui.Add("Text", "x160 y185 w150 h125", "Note: this script continues running even after you close the game. You can always press f9 to exit it!")
+
 
     ListBox.OnEvent("Change", OnChange)
 
@@ -556,7 +575,7 @@ f10:: {
     }
 
 
-    mainGui.Show("w223 h176")
+    mainGui.Show("w300 h280")
     ListBox.Delete()
     loop files A_ScriptDir "\songs\*.txt" {
         ListBox.Add([A_LoopFileName])
