@@ -57,6 +57,10 @@ notes := [
     ["B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B2", "C2", "C#2", "D2"],
     ["E", "F", "F#", "G", "G#", "A", "A#", "B", "C", "C#", "D", "D#", "E2", "F2", "F#2", "G2"]
 ]
+info := "f6 - reload script`nf7 - clear tooltip`nf8 - run setup`nf9 - close script`nf10 - open window"
+
+; first launch info
+MsgBox("Webfishing Guitar Helper started!`nHotkeys:`n" info)
 
 
 waitEnter() {
@@ -302,8 +306,8 @@ f10:: {
     ButtonChoose := mainGui.Add("Button", "x210 y144 w80 h23 Disabled" disablebuttons, "&Choose")
 
     mainGui.Add("Text", "x10 y180 w315 h2 +0x10")
-    Note := mainGui.Add("Text", "x10 y185 w150 h125", "Hotkeys for this script: `nf6 - reload`nf7 - clear tooltip`nf8 - run setup`nf9 - close script`nf10 - open window")
-    Note2 := mainGui.Add("Text", "x160 y185 w150 h125", "Note: this script continues running even after you close the game. You can always press f9 to exit it!")
+    Note := mainGui.Add("Text", "x10 y185 w150 h125", "Hotkeys for this script: `n" info)
+    Note2 := mainGui.Add("Text", "x160 y185 w140 h125", "Note: this script continues running even after you close the game. You can always press f9 to exit, or close it in the tray.")
 
 
     ListBox.OnEvent("Change", OnChange)
